@@ -1,0 +1,557 @@
+<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
+
+# Инструкция по интеграции графовых баз данных в N8N с использованием LightRAG
+
+## Введение
+
+Векторных баз данных часто недостаточно для точного поиска в больших объемах документов. Графовые базы данных решают проблемы обычного RAG, сохраняя связи между сущностями и обеспечивая контекстуальный поиск по отношениям.[^1]
+
+## Ограничения традиционного RAG
+
+### Основные проблемы векторного поиска
+
+- **Потеря контекста**: документы разрезаются на фрагменты, теряя смысловые связи между абзацами
+- **Фрагментарность**: когда в одном абзаце говорится о требованиях, а в другом о запретах, модель может их перепутать
+- **Отсутствие связей**: векторный поиск не учитывает взаимосвязи между сущностями в разных документах
+- **Ограниченное многошаговое рассуждение**: сложно найти информацию через цепочку связанных сущностей[^2]
+
+
+## Сравнение решений: Microsoft GraphRAG vs LightRAG
+
+| Характеристика | Microsoft GraphRAG | LightRAG |
+| :-- | :-- | :-- |
+| **Производительность** | Очень высокая точность | Высокая точность (~20-30% быстрее)[^2] |
+| **Скорость** | Медленная обработка | Быстрая обработка (~30% снижение латентности)[^2] |
+| **Стоимость** | Очень дорого | Значительно дешевле[^2] |
+| **Сложность** | Высокая | Простая в развертывании[^3] |
+| **Обновления** | Сложные | Инкрементальные (~50% снижение времени)[^2] |
+| **Применение** | Крупные корпоративные проекты | Малый и средний бизнес[^1] |
+
+**Вывод:** LightRAG оптимален для большинства случаев применения благодаря балансу производительности, скорости и стоимости.[^1]
+
+## Принципы работы графовых баз данных
+
+### Структура знаний
+
+```
+Документ → Чанки → Извлечение сущностей → Аннотация → Связи → Граф знаний
+```
+
+
+### Ключевые компоненты
+
+1. **Сущности (Entities)**: люди, организации, места, концепции
+2. **Отношения (Relations)**: связи между сущностями с описанием
+3. **Свойства (Properties)**: атрибуты сущностей и отношений
+4. **Контекст**: окружающая информация для каждой связи[^4]
+
+### Пример графа знаний
+
+```
+Елизавета I → (родилась) → 7 сентября 1533
+Елизавета I → (умерла) → 1603 год  
+Елизавета I → (потомок) → Генрих VIII
+Генрих VIII → (связан с) → другие исторические личности
+```
+
+
+## Установка и развертывание LightRAG
+
+### Системные требования[^3]
+
+- **LLM**: минимум 32 млрд параметров
+- **Контекст**: минимум 32KB, рекомендуется 64KB
+- **Embedding модель**: BAAI/bge-m3 или text-embedding-3-large
+- **Reranker**: BAAI/bge-reranker-v2-m3 или Jina модели
+
+
+### Установка через Docker
+
+```bash
+# Клонирование репозитория
+git clone https://github.com/HKUDS/LightRAG.git
+cd LightRAG
+
+# Настройка переменных окружения
+cp env.example .env
+
+# Запуск через Docker Compose
+docker compose up
+```
+
+
+### Установка из PyPI
+
+```bash
+# Установка сервера с API поддержкой
+pip install "lightrag-hku[api]"
+cp env.example .env
+lightrag-server
+```
+
+
+## Конфигурация LightRAG
+
+### Основные параметры[^3]
+
+```python
+rag = LightRAG(
+    working_dir="./rag_storage",           # Рабочая директория
+    workspace="production",                 # Изоляция данных
+    chunk_token_size=1200,                 # Размер чанка
+    chunk_overlap_token_size=100,          # Пересечение чанков
+    entity_extract_max_gleaning=1,         # Циклы извлечения сущностей
+    embedding_batch_num=32,                # Размер пакета эмбеддингов
+    llm_model_max_async=4,                 # Максимум параллельных LLM
+    enable_llm_cache=True,                 # Кэширование LLM ответов
+    vector_db_storage_cls_kwargs={
+        "cosine_better_than_threshold": 0.2  # Порог схожести
+    }
+)
+```
+
+
+### Переменные окружения
+
+```bash
+# API ключи
+OPENAI_API_KEY="your_openai_key"
+UPSTAGE_API_KEY="your_upstage_key"
+
+# Настройки производительности
+MAX_ASYNC=4
+TOP_K=60
+CHUNK_TOP_K=20
+MAX_ENTITY_TOKENS=6000
+MAX_RELATION_TOKENS=8000
+MAX_TOTAL_TOKENS=30000
+COSINE_THRESHOLD=0.2
+
+# Аутентификация
+LIGHTRAG_USERNAME="admin"
+LIGHTRAG_PASSWORD="secure_password"
+```
+
+
+## Режимы поиска LightRAG
+
+### 1. Naive Mode (Наивный)
+
+- **Назначение**: Обычный векторный поиск без использования графа
+- **Применение**: Базовые запросы, когда граф не нужен
+- **Производительность**: Самый быстрый
+
+
+### 2. Local Mode (Локальный)
+
+- **Назначение**: Поиск по локальным связям между сущностями
+- **Применение**: Детальная информация о конкретных объектах
+- **Особенности**: Находит объект и "тянет" его соседей по графу
+
+
+### 3. Global Mode (Глобальный)
+
+- **Назначение**: Использует глобальные знания, высокоуровневые запросы
+- **Применение**: Общая картина, выявление паттернов
+- **Особенности**: Генерирует дополнительные концептуальные запросы
+
+
+### 4. Hybrid Mode (Гибридный)
+
+- **Назначение**: Комбинирует локальный и глобальный методы
+- **Применение**: Полный охват информации
+- **Рекомендации**: Детализация + общий контекст
+
+
+### 5. Mix Mode (Смешанный)
+
+- **Назначение**: Интегрирует поиск по графу и векторный поиск
+- **Применение**: Наилучшее качество ответов
+- **Рекомендации**: Используйте с reranker моделью[^3]
+
+
+## Интеграция с N8N
+
+### Создание HTTP инструмента для агента
+
+```javascript
+// N8N HTTP Request Node конфигурация
+{
+  "url": "https://your-lightrag-server.com/query",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer your_api_key"
+  },
+  "body": {
+    "query": "{{$json.query}}",
+    "mode": "mix",
+    "top_k": 20,
+    "chunk_top_k": 4,
+    "max_total_tokens": 30000,
+    "enable_rerank": true
+  }
+}
+```
+
+
+### Настройка агента в N8N
+
+1. **Chat Trigger**: Получение запросов пользователей
+2. **AI Agent Node**: OpenAI GPT-4 с инструментами
+3. **HTTP Request Tool**: Запросы к LightRAG API
+4. **Response Processing**: Обработка ответов
+
+### Пример workflow
+
+```
+[Chat Trigger] → [AI Agent] → [LightRAG Tool] → [Response]
+                      ↓
+              [Vector Store Tool]
+                      ↓
+              [Re-ranking]
+```
+
+
+## Загрузка и обработка документов
+
+### Поддерживаемые форматы[^3]
+
+- PDF, DOC, DOCX
+- PPT, PPTX
+- CSV, TXT
+- Через textract библиотеку
+
+
+### Процесс обработки документов
+
+1. **Фильтрация и дедубликация**: Проверка на дубликаты
+2. **Чанкинг**: Разбивка на фрагменты
+3. **Эмбеддинг**: Векторизация чанков
+4. **Извлечение сущностей**: LLM анализ содержимого
+5. **Извлечение отношений**: Определение связей
+6. **Слияние**: Объединение повторяющихся сущностей
+7. **Генерация описаний**: Консолидация информации
+8. **Финальное эмбеддинг**: Векторизация итоговых описаний
+
+### API для загрузки документов
+
+```python
+# Через Python API
+await rag.ainsert("Текст документа")
+
+# Пакетная загрузка
+await rag.ainsert([
+    "Документ 1", 
+    "Документ 2"
+], ids=["doc1", "doc2"])
+
+# С указанием путей к файлам
+documents = ["Содержимое 1", "Содержимое 2"]
+file_paths = ["path/to/doc1.txt", "path/to/doc2.txt"]
+await rag.ainsert(documents, file_paths=file_paths)
+```
+
+
+### REST API загрузка
+
+```bash
+curl -X POST "https://your-server/upload" \
+  -H "Authorization: Bearer your_token" \
+  -F "files=@document.pdf"
+```
+
+
+## Визуализация и мониторинг
+
+### Web-интерфейс LightRAG
+
+- **Загрузка документов**: Drag-and-drop интерфейс
+- **Визуализация графа**: Интерактивное отображение связей
+- **Тестирование поиска**: Проверка разных режимов
+- **API документация**: Swagger интерфейс
+- **Мониторинг Pipeline**: Статус обработки документов
+
+
+### Мониторинг обработки
+
+```json
+{
+  "status": "processing",
+  "phase": "entity_extraction", 
+  "chunk_1": {
+    "entities_extracted": 11,
+    "relations_found": 10
+  },
+  "chunk_2": {
+    "entities_extracted": 13,
+    "relations_found": 10
+  },
+  "total_entities": 36,
+  "total_relations": 42
+}
+```
+
+
+## Хранение данных и масштабирование
+
+### Поддерживаемые хранилища[^3]
+
+| Тип | Опции | Рекомендации |
+| :-- | :-- | :-- |
+| **KV Storage** | JsonKV, PostgreSQL, Redis, MongoDB | PostgreSQL для продакшна |
+| **Vector Storage** | NanoVector, PostgreSQL, Milvus, Qdrant, Faiss | Qdrant/Milvus для масштаба |
+| **Graph Storage** | NetworkX, Neo4j, PostgreSQL AGE | Neo4j для производительности |
+| **Doc Status** | JsonDoc, PostgreSQL, MongoDB | PostgreSQL для надежности |
+
+### Конфигурация производственного окружения
+
+```python
+# Производственная конфигурация
+rag = LightRAG(
+    working_dir="./production_rag",
+    workspace="main",
+    kv_storage="PGKVStorage",
+    vector_storage="QdrantVectorDBStorage", 
+    graph_storage="Neo4JStorage",
+    doc_status_storage="PGDocStatusStorage",
+    # Настройки производительности
+    llm_model_max_async=8,
+    embedding_batch_num=64,
+    chunk_token_size=1500,
+    enable_llm_cache=True
+)
+```
+
+
+### Изоляция данных
+
+```python
+# Разные workspace для разных проектов
+rag_prod = LightRAG(workspace="production")
+rag_dev = LightRAG(workspace="development")  
+rag_test = LightRAG(workspace="testing")
+```
+
+
+## Оптимизация производительности
+
+### Настройки LLM
+
+```python
+# Оптимизированная конфигурация
+query_param = QueryParam(
+    mode="mix",                    # Лучшее качество
+    top_k=60,                     # Количество сущностей
+    chunk_top_k=20,               # Количество чанков
+    max_entity_tokens=6000,       # Лимит токенов сущностей
+    max_relation_tokens=8000,     # Лимит токенов отношений  
+    max_total_tokens=30000,       # Общий лимит токенов
+    enable_rerank=True            # Включить re-ranking
+)
+```
+
+
+### Мониторинг производительности
+
+- **Latency**: ~80ms vs 120ms у традиционного RAG[^2]
+- **Throughput**: Параллельная обработка до 8 запросов
+- **Memory**: Оптимизированное использование GPU/CPU
+- **Cost**: На 50% дешевле Microsoft GraphRAG[^2]
+
+
+## Безопасность и контроль доступа
+
+### Аутентификация API
+
+```python
+# Настройка аутентификации
+LIGHTRAG_USERNAME = "admin"
+LIGHTRAG_PASSWORD = "secure_password_123"
+LIGHTRAG_API_KEY = "your-secure-api-key"
+```
+
+
+### Контроль доступа к данным
+
+- **Workspace изоляция**: Логическое разделение данных по проектам
+- **Role-based access**: Ограничение доступа по ролям
+- **API ключи**: Токен-based аутентификация
+- **Network security**: HTTPS, firewall правила
+
+
+### Соответствие требованиям
+
+- **GDPR compliance**: Возможность удаления персональных данных
+- **Audit logs**: Логирование всех операций
+- **Data residency**: Контроль места хранения данных
+- **Encryption**: Шифрование данных в покое и передаче
+
+
+## Практические сценарии использования
+
+### 1. Корпоративная база знаний
+
+```python
+# Загрузка корпоративных документов
+documents = [
+    "Политики безопасности",
+    "Процедуры HR", 
+    "Техническая документация",
+    "Регламенты"
+]
+
+for doc in documents:
+    await rag.ainsert(doc, ids=[f"corp_{doc.lower().replace(' ', '_')}"])
+```
+
+
+### 2. Исследовательские проекты
+
+- **Научные публикации**: Связи между авторами, цитированиями, концепциями
+- **Медицинские данные**: Связи между симптомами, лечением, препаратами
+- **Юридические документы**: Связи между законами, прецедентами, статьями
+
+
+### 3. Техническая поддержка
+
+```python
+# Конфигурация для technical support
+support_rag = LightRAG(
+    workspace="tech_support",
+    addon_params={
+        "language": "Russian",
+        "entity_types": ["problem", "solution", "product", "version"]
+    }
+)
+```
+
+
+## Устранение неисправностей
+
+### Распространенные проблемы
+
+| Проблема | Причина | Решение |
+| :-- | :-- | :-- |
+| **KeyError: 'history_messages'** | Не инициализирован pipeline | `await initialize_pipeline_status()` |
+| **AttributeError: __aenter__** | Не инициализированы storages | `await rag.initialize_storages()` |
+| **Медленная обработка** | Высокий batch_size | Снизить `embedding_batch_num` |
+| **Высокое потребление RAM** | Большой контекст | Уменьшить `max_total_tokens` |
+| **Низкое качество извлечения** | Неподходящая модель | Использовать GPT-4 для извлечения |
+
+### Диагностические команды
+
+```python
+# Проверка статуса
+await rag.get_status()
+
+# Просмотр метрик
+await rag.get_metrics()
+
+# Очистка кэша
+await rag.clear_cache()
+
+# Проверка подключений
+await rag.test_connections()
+```
+
+
+## Миграция и обновление
+
+### Обновление документов
+
+```python
+# Обновление существующего документа
+await rag.delete_by_id("doc_id")  # Удаление старой версии
+await rag.ainsert(new_content, ids=["doc_id"])  # Загрузка новой
+```
+
+
+### Миграция между хранилищами
+
+```python
+# Экспорт данных
+export_data = await rag.export_knowledge_graph()
+
+# Импорт в новое хранилище
+new_rag = LightRAG(vector_storage="QdrantVectorDBStorage")
+await new_rag.import_knowledge_graph(export_data)
+```
+
+
+## Заключение и рекомендации
+
+### Когда использовать LightRAG
+
+- **Сложные запросы**: Требуется многошаговое рассуждение
+- **Связанные данные**: Много взаимосвязанных сущностей
+- **Точность важнее скорости**: Качество ответов критично
+- **Ограниченный бюджет**: Альтернатива дорогим решениям
+
+
+### Лучшие практики
+
+1. **Начните с тестирования**: Используйте small dataset для проверки
+2. **Настройте параметры**: Оптимизируйте под ваши данные
+3. **Мониторинг производительности**: Отслеживайте метрики
+4. **Регулярные обновления**: Поддерживайте граф в актуальном состоянии
+5. **Backup стратегия**: Регулярное резервное копирование
+
+### Дальнейшее развитие
+
+- **Мультимодальные возможности**: Обработка изображений, таблиц[^3]
+- **Интеграция с внешними источниками**: API подключения
+- **Расширенная аналитика**: Более глубокие инсайты из графа
+- **Автоматическое обновление**: Real-time синхронизация данных
+
+***
+
+**Дата создания документации:** 12 сентября 2025
+**Версия LightRAG:** Latest (GitHub)
+**Источники:** Видео "КОНЕЦ ВЕКТОРАМ? Графовые базы данных в N8N", официальная документация LightRAG, сравнительные исследования GraphRAG vs LightRAG[^2][^3]
+<span style="display:none">[^10][^11][^12][^13][^14][^15][^16][^17][^18][^19][^20][^21][^5][^6][^7][^8][^9]</span>
+
+<div style="text-align: center">⁂</div>
+
+[^1]: https://www.youtube.com/watch?v=EUG65dIY-2k
+
+[^2]: https://www.maargasystems.com/2025/05/12/understanding-graphrag-vs-lightrag-a-comparative-analysis-for-enhanced-knowledge-retrieval/
+
+[^3]: https://github.com/HKUDS/LightRAG
+
+[^4]: https://milvus.io/ai-quick-reference/what-is-entity-extraction-in-knowledge-graphs
+
+[^5]: https://www.youtube.com/watch?v=CRiT1OXHE_k
+
+[^6]: https://www.reddit.com/r/n8n/comments/1mq2q76/rag_ai_agents_that_actually_work_graphrag_n8n/
+
+[^7]: https://blog.n8n.io/agentic-rag/
+
+[^8]: https://www.youtube.com/watch?v=YGRO2FHOOCU
+
+[^9]: https://aws.amazon.com/blogs/database/find-and-link-similar-entities-in-a-knowledge-graph-using-amazon-neptune-part-2-vector-similarity-search/
+
+[^10]: https://stable-learn.com/en/lightrag-introduction/
+
+[^11]: https://neo4j.com/blog/developer/under-the-covers-with-lightrag-retrieval/
+
+[^12]: https://github.com/LarFii/LightRAG-hku
+
+[^13]: https://www.theaiautomators.com/make-ai-agents-10x-smarter-with-graphrag/
+
+[^14]: https://tdg-global.net/blog/analytics/vector-rag-vs-graph-rag-vs-lightrag/kenan-agyel/
+
+[^15]: https://gitee.com/MufcLiuKai/LightRAG/blob/main/lightrag/api/README.md?skip_mobile=true
+
+[^16]: https://sinjun.ai/what-is-lightrag-and-how-it-works-everything-you-need-to-know/
+
+[^17]: https://flocode.substack.com/p/078-lightrag-from-document-retrieval
+
+[^18]: https://coconote.app/notes/6e16d1f4-8c4b-428e-8742-4edbfb6e8d8d
+
+[^19]: https://www.reddit.com/r/Rag/comments/1jtdrtt/graphrag_vs_lightrag/
+
+[^20]: https://neo4j.com/blog/developer/knowledge-graph-structured-semantic-search/
+
+[^21]: https://www.reddit.com/r/golang/comments/1jjzn83/golightrag_go_implementation_of_lightrag_for/
+

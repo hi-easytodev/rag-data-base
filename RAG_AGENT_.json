@@ -1,0 +1,473 @@
+{
+  "name": "IZ_RAG_AGENT",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -360,
+        -180
+      ],
+      "id": "21cdaadb-5341-43e9-9f4e-9a0cb420c5cd",
+      "name": "When chat message received",
+      "webhookId": "61ea6512-4bfd-4b39-825e-288d75b7c326"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        40,
+        -180
+      ],
+      "id": "fa06f4d5-206b-441e-b7f2-5af4f5a9cfd0",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-nano",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-nano"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -60,
+        80
+      ],
+      "id": "816fe0f6-2382-47c3-9345-f673b06e72bf",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Yyiu2Fyol11eo7YL",
+          "name": "OpenAi YUL"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        120,
+        80
+      ],
+      "id": "46ac40a3-4d58-459a-9ca6-35803e455cf6",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "cZIwEvYfdDHoDdnu",
+          "name": "Postgres DEMO_Test_n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "menu_restoran",
+        "toolDescription": "Use to clarify restaurant menu",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        460,
+        -60
+      ],
+      "id": "832fcead-eec6-4f2c-bead-933680b378e3",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "9pwpemJ05uRxsmCQ",
+          "name": "Supabase DEMO_TEST_n8n"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -280,
+        520
+      ],
+      "id": "679ef907-3e3b-427f-a072-2dcdff3a00a5",
+      "name": "When clicking â€˜Test workflowâ€™"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "11lwWCJR0yil82D1kAyUKEC2qgKO4svtG",
+          "mode": "list",
+          "cachedResultName": "ÐŸÑ€Ð°Ð¸Ì†Ñ Ð»Ð¸ÑÑ‚ Ð½Ð° Ð¼ÐµÐ½ÑŽ Ñ€ÐµÑÑ‚Ð¾Ñ€Ð°Ð½Ð°.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/11lwWCJR0yil82D1kAyUKEC2qgKO4svtG/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -60,
+        520
+      ],
+      "id": "14a2d0bc-8eb0-4b8b-b8eb-9b4f8ac098a1",
+      "name": "Google Drive",
+      "credentials": {
+        "googleApi": {
+          "id": "zWdAGQsYe4ElFP3I",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        140,
+        520
+      ],
+      "id": "d041e7ab-fed8-4060-bf85-de8b4d85e818",
+      "name": "Supabase Vector Store1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "9pwpemJ05uRxsmCQ",
+          "name": "Supabase DEMO_TEST_n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        20,
+        800
+      ],
+      "id": "2cfd36f1-29b1-4511-8ca7-cbcb4fa7b566",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "Yyiu2Fyol11eo7YL",
+          "name": "OpenAi YUL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        240,
+        700
+      ],
+      "id": "9d34ce21-49f9-4f75-895b-0fc079896ade",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        540,
+        840
+      ],
+      "id": "fed9441f-a2b2-40bf-83f5-c5ba4f7fd6b3",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        500,
+        120
+      ],
+      "id": "0a4bac22-3c88-4d7e-bfbc-1142b879ea98",
+      "name": "Embeddings OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "Yyiu2Fyol11eo7YL",
+          "name": "OpenAi YUL"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1,
+      "position": [
+        300,
+        100
+      ],
+      "id": "63cd1a19-9d6a-4789-afa1-0e984413d245",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "content": "## Ð§ÐÐ¡Ð¢Ð¬ 2\n### Ð’Ñ‹Ð³Ñ€ÑƒÐ·ÐºÐ° Ð‘Ð°Ð· Ð”Ð°Ð½Ð½Ñ‹Ñ… Ð² Ð²ÐµÐºÑ‚Ð¾Ñ€Ð½Ñ‹Ð¹ Ñ„Ð¾Ñ€Ð¼Ð°Ñ‚",
+        "height": 640,
+        "width": 1220,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -420,
+        380
+      ],
+      "typeVersion": 1,
+      "id": "abfdaf57-75e8-4089-b43d-4a478ca66211",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Ð§ÐÐ¡Ð¢Ð¬ 1\n### ÐžÐ±Ñ€Ð°Ñ‰ÐµÐ½Ð¸Ðµ RAG ÐÐ³ÐµÐ½Ñ‚Ð° Ðº Ð±Ð°Ð·Ð°Ð¼ Ð´Ð°Ð½Ð½Ñ‹Ð¼",
+        "height": 620,
+        "width": 1260,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -460,
+        -300
+      ],
+      "typeVersion": 1,
+      "id": "58210891-ed2d-43f9-ad4d-c3c819b3d2f2",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "### Ð’Ð¸Ð´ÐµÐ¾ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ° Ð¸ Ð¿Ð¾Ð´ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ðµ Telegram Ðº Ð°Ð³ÐµÐ½Ñ‚Ð°Ð¼:\nhttps://youtu.be/c8bePGmxFNw",
+        "height": 80,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -640,
+        20
+      ],
+      "typeVersion": 1,
+      "id": "f5d22b16-826b-4ed9-86e2-cbeb14439858",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "### Ð”Ð°Ð½Ð½Ñ‹Ðµ Ð½Ð° ÑÐ²Ð¾Ñ‘Ð¼ ÑÐµÑ€Ð²ÐµÑ€Ðµ:\nhttps://youtu.be/BqrMrS5GAtI",
+        "height": 80,
+        "width": 280,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -100,
+        220
+      ],
+      "typeVersion": 1,
+      "id": "9f8ef89d-142a-4ae6-9779-5ea6781ade72",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "### Ð˜Ð½ÑÑ‚Ñ€ÑƒÐ¼ÐµÐ½Ñ‚ Think:\nhttps://youtu.be/6GwKcWVmsFo",
+        "height": 80,
+        "width": 260,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        220,
+        220
+      ],
+      "typeVersion": 1,
+      "id": "bb4b4ef2-9c2c-479e-90dd-76eaf0b2c060",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "### Google ÐÐ°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ° Ð² n8n: \nhttps://youtu.be/yyj9Hyr86ag",
+        "height": 80,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -240,
+        720
+      ],
+      "typeVersion": 1,
+      "id": "53caa91f-b223-430c-a4ca-72d648b7eced",
+      "name": "Sticky Note5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking â€˜Test workflowâ€™": {
+      "main": [
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5cf648d5-5aab-4c0a-aa90-8b8800838b10",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "479931a9b1c0980217b795eef202ec08aa8efa5933ee558f5e5c7dc32b0cdc9e"
+  },
+  "id": "CxE8121AUrU9Vu3P",
+  "tags": []
+}
